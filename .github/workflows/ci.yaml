@@ -25,8 +25,7 @@ jobs:
           java-version: ${{ matrix.java }}
           check-latest: true
       - name: tests
-        run: |
-          sbt clean +test
+        run: sbt clean +test
 
   formatting:
     runs-on: ubuntu-latest
@@ -42,5 +41,4 @@ jobs:
           java-version: 17
           check-latest: true
       - name: Formatting
-        run: |
-          sbt scalafmtSbtCheck scalafmtCheck test:scalafmtCheck
+        run: sbt scalafmtSbtCheck scalafmtCheck test:scalafmtCheck
