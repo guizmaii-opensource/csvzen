@@ -5,11 +5,12 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 ThisBuild / organization := "com.guizmaii"
 ThisBuild / name         := "csvzen"
 
-ThisBuild / scalafmtOnCompile := true
+ThisBuild / scalaVersion      := "3.3.7"
 ThisBuild / scalafmtCheck     := true
 ThisBuild / scalafmtSbtCheck  := true
-
-ThisBuild / scalaVersion := "3.3.7"
+ThisBuild / scalafmtOnCompile := !insideCI.value
+ThisBuild / semanticdbEnabled := true
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision // use Scalafix compatible version
 
 // ### Aliases ###
 
