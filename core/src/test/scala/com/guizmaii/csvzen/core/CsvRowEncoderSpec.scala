@@ -153,31 +153,39 @@ object CsvRowEncoderSpec extends ZIOSpecDefault {
       }
     )
 
-  // Compile-time failure tests via scala.compiletime.testing. We pin an error-message
-  // substring so that unrelated compile failures (typos in the snippet, renames in the
-  // library) don't accidentally turn these green.
+  // Compile-time failure tests via scala.compiletime.testing. We pin the exact full
+  // error message and assert error count == 1 so that unrelated compile failures
+  // (typos in the snippet, renames in the library) don't accidentally turn these green.
+  // Trade-off: the messages are produced by dotc itself, so a Scala 3 minor version
+  // upgrade can rephrase them and require refreshing the strings here.
   private val negativeCompile =
     suite("derivation fails cleanly for unsupported shapes")(
       test("missing CsvFieldEncoder for a field type") {
-        // Define the unknown field type inside the quoted snippet so the outer
-        // compiler doesn't see an unused local definition.
-        val err      = scala.compiletime.testing.typeCheckErrors(
+        val err = scala.compiletime.testing.typeCheckErrors(
           """
           final class UnknownFieldType(val x: Int)
           final case class BadRow(c: UnknownFieldType) derives CsvRowEncoder
           """
         )
-        val mentions = err.exists(_.message.contains("CsvFieldEncoder"))
-        assertTrue(err.nonEmpty, mentions)
+        assertTrue(
+          err.length == 1,
+          err.head.message ==
+            "No given instance of type com.guizmaii.csvzen.core.CsvFieldEncoder[UnknownFieldType] was found",
+        )
       },
       test("non-product type (no Mirror.ProductOf)") {
-        val err      = scala.compiletime.testing.typeCheckErrors(
+        val err = scala.compiletime.testing.typeCheckErrors(
           """
           CsvRowEncoder.derived[List[Int]]
           """
         )
-        val mentions = err.exists(e => e.message.contains("Product") || e.message.contains("Mirror"))
-        assertTrue(err.nonEmpty, mentions)
+        assertTrue(
+          err.length == 1,
+          err.head.message ==
+            "No given instance of type scala.deriving.Mirror.ProductOf[List[Int]] was found for parameter m of method derived in object CsvRowEncoder. " +
+            "Failed to synthesize an instance of type scala.deriving.Mirror.ProductOf[List[Int]]: " +
+            "class List is not a generic product because it is not a case class",
+        )
       },
     )
 
