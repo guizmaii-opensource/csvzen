@@ -26,7 +26,7 @@ import com.guizmaii.csvzen.testkit.filehelpers.*
  * Promotion is always an explicit file rename — no environment variable or system
  * property "auto-update" mode.
  */
-def goldenTest[A: Tag: CsvRowEncoder](
+def csvGoldenTest[A: Tag: CsvRowEncoder](
   gen: Gen[Sized, A]
 )(using trace: Trace, config: GoldenConfiguration): Spec[TestEnvironment, Throwable] = {
   val name = getName[A]

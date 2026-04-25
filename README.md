@@ -192,7 +192,8 @@ line1\nline2   →   "line1\nline2"
 
 `csvzen-test-kit` ships golden-file assertions for `CsvRowEncoder` output,
 modelled on `zio-json-golden`. Add it to the `Test` config and call
-`goldenTest(gen)` from a `ZIOSpecDefault`:
+`csvGoldenTest(gen)` from a `ZIOSpecDefault` (the prefix avoids a name clash
+with `zio-json-golden`'s own `goldenTest` if both are on the classpath):
 
 ```scala
 import com.guizmaii.csvzen.core.*
@@ -204,7 +205,7 @@ object UserSpec extends ZIOSpecDefault {
   final case class User(id: Int, name: String, active: Boolean) derives CsvRowEncoder
 
   override def spec = suite("UserSpec")(
-    goldenTest(DeriveGen[User])
+    csvGoldenTest(DeriveGen[User])
   )
 }
 ```

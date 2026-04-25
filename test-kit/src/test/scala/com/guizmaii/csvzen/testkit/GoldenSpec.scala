@@ -18,9 +18,9 @@ object GoldenSpec extends ZIOSpecDefault {
 
   override def spec: Spec[TestEnvironment & Scope, Any] =
     suite("GoldenSpec")(
-      goldenTest(DeriveGen[SimpleRecord]), {
+      csvGoldenTest(DeriveGen[SimpleRecord]), {
         given GoldenConfiguration = nestedConfig
-        goldenTest(DeriveGen[SimpleRecord])
+        csvGoldenTest(DeriveGen[SimpleRecord])
       },
     )
 }

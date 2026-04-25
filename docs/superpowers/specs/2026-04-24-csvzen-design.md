@@ -405,7 +405,7 @@ For each of the 28 shipped types, asserted via `FieldEmitter` + `StringWriter`:
   object GoldenConfiguration:
     given default: GoldenConfiguration = GoldenConfiguration()
 
-  def goldenTest[A: Tag: CsvRowEncoder](
+  def csvGoldenTest[A: Tag: CsvRowEncoder](
     gen: Gen[Sized, A]
   )(using GoldenConfiguration): Spec[TestEnvironment, Throwable]
   ```

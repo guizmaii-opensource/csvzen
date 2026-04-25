@@ -3,7 +3,7 @@ package com.guizmaii.csvzen.testkit
 import com.guizmaii.csvzen.core.CsvConfig
 
 /**
- * Configuration for [[goldenTest]].
+ * Configuration for [[csvGoldenTest]].
  *
  * @param relativePath
  *   path under `src/test/resources/golden/` where the golden file lives. Use this when

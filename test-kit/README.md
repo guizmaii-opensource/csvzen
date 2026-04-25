@@ -29,7 +29,7 @@ object MyEncoderSpec extends ZIOSpecDefault {
   final case class User(id: Int, name: String, active: Boolean) derives CsvRowEncoder
 
   override def spec = suite("MyEncoderSpec")(
-    goldenTest(DeriveGen[User])
+    csvGoldenTest(DeriveGen[User])
   )
 }
 ```
