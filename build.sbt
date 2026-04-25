@@ -33,7 +33,7 @@ lazy val root =
 
 lazy val core =
   project
-    .in(file("core"))
+    .in(file("modules/core"))
     .settings(stdSettings *)
     .settings(
       name := "csvzen-core",
@@ -46,7 +46,7 @@ lazy val core =
 
 lazy val `test-kit` =
   project
-    .in(file("test-kit"))
+    .in(file("modules/test-kit"))
     .dependsOn(core)
     .settings(stdSettings *)
     .settings(
