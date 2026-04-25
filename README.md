@@ -267,6 +267,15 @@ object UserSpec extends ZIOSpecDefault {
 }
 ```
 
+> **Tip on `String` fields.** `DeriveGen[String]` reaches for the full Unicode
+> `Char` range — RTL Arabic, surrogate pairs, control chars. The bytes are
+> correct, but Unicode bidi can visually scramble cells in IDEs. For
+> `String`-heavy records, hand-roll the generator with `Gen.alphaNumericString`
+> instead. `DeriveGen` also only ships instances for primitives + a handful of
+> stdlib types — for `BigInt` / `BigDecimal` / `UUID` / `Currency` / `java.time.*`
+> you need to provide a `Gen` by hand regardless. See `test-kit/README.md` and
+> `GoldenSpec` for the full pattern.
+
 First run writes `src/test/resources/golden/User_new.csv` and fails. Drop the
 `_new` suffix to accept the snapshot. Subsequent runs compare against the
 on-disk file; on mismatch a `_changed.csv` is written next to the original so

@@ -34,6 +34,33 @@ object MyEncoderSpec extends ZIOSpecDefault {
 }
 ```
 
+> **Tip — strings and `DeriveGen`.** `DeriveGen[String]` draws from the full
+> Unicode `Char` range, including RTL Arabic, surrogate pairs and control
+> characters. The bytes on disk are correct, but the Unicode bidirectional
+> algorithm can visually scramble cells that mix RTL chars with the
+> surrounding `,-NNNNN`, making goldens hard to eyeball in IDEs. For
+> `String`-heavy records, hand-roll the generator with
+> `Gen.alphaNumericString` / `Gen.alphaNumericChar` (or whatever range fits
+> your domain) so the goldens render cleanly:
+>
+> ```scala
+> import zio.test.{Gen, Sized}
+>
+> private val userGen: Gen[Sized, User] =
+>   for {
+>     id     <- Gen.int
+>     name   <- Gen.alphaNumericString
+>     active <- Gen.boolean
+>   } yield User(id, name, active)
+>
+> csvGoldenTest(userGen)
+> ```
+>
+> Note: `DeriveGen` only ships generators for primitives, `String`, `Option`,
+> tuples and a few stdlib types — for `BigInt` / `BigDecimal` / `UUID` /
+> `Currency` / any `java.time.*` you'll need to provide a `Gen` by hand
+> regardless. csvzen-test-kit's own `GoldenSpec` shows the full pattern.
+
 ## Workflow
 
 1. **First run** with no golden file → writes

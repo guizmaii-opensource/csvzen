@@ -26,12 +26,22 @@ private[testkit] object filehelpers {
     else ZIO.attempt(file.getParentFile).flatMap(getRootDir)
 
   def createGoldenDirectory(pathToDir: String)(using trace: Trace): Task[Path] = {
-    val rootResource = Option(getClass.getResource("/")).orElse(Option(getClass.getResource(".")))
+    // Resolve a `File` for either the classpath root (`/`) or the package root (`.`),
+    // tolerating both the `null` URL (some classloaders) and non-hierarchical URIs
+    // (e.g. JAR-packaged tests, where `new File(uri)` throws `IllegalArgumentException`).
+    def tryRoot(name: String): Option[File] =
+      Option(getClass.getResource(name)).flatMap { url =>
+        try Some(new File(url.toURI))
+        catch {
+          case _: IllegalArgumentException    => None
+          case _: java.net.URISyntaxException => None
+        }
+      }
+    val rootFileOpt                         = tryRoot("/").orElse(tryRoot("."))
     for {
-      uri      <- ZIO
-                    .fromOption(rootResource.map(_.toURI))
-                    .orElseFail(new IllegalStateException("csvzen-test-kit: no classpath root resource available."))
-      rootFile <- ZIO.attempt(new File(uri))
+      rootFile <- ZIO
+                    .fromOption(rootFileOpt)
+                    .orElseFail(new IllegalStateException("csvzen-test-kit: no file-based classpath root resource available."))
       baseFile <- getRootDir(rootFile)
       goldenDir = new File(baseFile.getParentFile, pathToDir)
       _        <- ZIO.attemptBlocking(goldenDir.mkdirs())
