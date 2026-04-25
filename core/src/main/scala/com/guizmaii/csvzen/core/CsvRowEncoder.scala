@@ -1,5 +1,6 @@
 package com.guizmaii.csvzen.core
 
+import scala.annotation.nowarn
 import scala.compiletime.{constValueTuple, summonAll}
 import scala.deriving.Mirror
 
@@ -15,6 +16,15 @@ object CsvRowEncoder {
     val encoders = encodersOf[m.MirroredElemTypes]
     new internal.DerivedCsvRowEncoder[A](labels, encoders)
   }
+
+  @nowarn("id=E197")
+  inline def custom[A](
+    inline headers: IndexedSeq[String]
+  )(inline encodeFn: (A, FieldEmitter) => Unit): CsvRowEncoder[A] =
+    new CsvRowEncoder[A] {
+      override val headerNames: IndexedSeq[String]       = headers
+      override def encode(a: A, out: FieldEmitter): Unit = encodeFn(a, out)
+    }
 
   inline private def labelsOf[L <: Tuple]: Array[String] = {
     val arr = constValueTuple[L].toArray

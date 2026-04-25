@@ -386,6 +386,40 @@ For each of the 28 shipped types, asserted via `FieldEmitter` + `StringWriter`:
 
 - **Approach B: full-`inline` derivation.** Replace the `Array[CsvFieldEncoder[Any]]` + `productElement` machinery with a fully-unrolled inline macro that expands to `out.emitInt(a.age); out.emitString(a.name); …` at each call site. Eliminates the remaining `productElement` boxing of primitive fields and all typeclass dispatch, but costs compile time and debuggability. To be explored on an experimental branch and benchmarked against A.
 - **`csvzen-zio` module.** `CsvWriter.managed(path, config): ZIO[Scope, Throwable, CsvWriter]` plus a `ZSink[Any, Throwable, A, Nothing, Long]` factory (given `CsvRowEncoder[A]`) returning row count.
+- **`csvzen-test-kit` module.** A zio-test integration providing golden-file assertions for CSV output, modelled directly on `zio-json-golden` for ergonomic parity with the rest of the ZIO ecosystem.
+
+  **Public API:**
+
+  ```scala
+  package com.guizmaii.csvzen.testkit
+
+  import com.guizmaii.csvzen.core.{ CsvConfig, CsvRowEncoder }
+  import zio.Tag
+  import zio.test.{ Gen, Sized, Spec, TestEnvironment }
+
+  final case class GoldenConfiguration(
+    relativePath: String = "",
+    sampleSize: Int      = 20,
+    csvConfig: CsvConfig = CsvConfig.default,
+  )
+  object GoldenConfiguration:
+    given default: GoldenConfiguration = GoldenConfiguration()
+
+  def goldenTest[A: Tag: CsvRowEncoder](
+    gen: Gen[Sized, A]
+  )(using GoldenConfiguration): Spec[TestEnvironment, Throwable]
+  ```
+
+  **File layout & workflow** — copied verbatim from `zio-json-golden`:
+
+  - Golden files live under `src/test/resources/golden/<relativePath>/<TypeShortName>.csv`. Type name is read from `Tag[A].tag.shortName`.
+  - First run (no golden file): the helper generates `sampleSize` rows from `gen`, encodes them through a `StringWriter`-backed `CsvWriter` (header + rows), writes the result to `<Name>_new.csv`, and fails the test with a message of the form *"No existing golden test for &lt;path&gt;. Remove `_new` from the suffix and re-run the test."* The dev removes the suffix to accept the snapshot.
+  - Subsequent runs: re-generate samples and compare to the on-disk golden. On mismatch, write `<Name>_changed.csv` next to it and fail. The dev diffs `_changed` against the original; if intended, they overwrite the original with `_changed`; if not, the test caught a regression.
+  - **No env-var / system-property update mode.** Promotion is always an explicit file-rename action by the developer.
+
+  **Sample generation.** `Gen[Sized, A].sample.forever.map(_.value).take(sampleSize.toLong).runCollect` produces a stable `Chunk[A]` (seeded by zio-test as usual). The chunk is encoded to a single CSV string via `CsvRowEncoder[A]` + `CsvConfig` from the `GoldenConfiguration`. Determinism is the gen's responsibility — same seed, same chunk, same bytes.
+
+  **Module placement.** Published as `csvzen-test-kit`, depending on `csvzen-core` and `dev.zio::zio-test`. Production code never pulls in `zio-test` — the dependency lives outside `csvzen-core`. No public-API change required in `csvzen-core`.
 - **Ryu-style `emitDouble`.** Eliminates the Double/Float carve-out if ever needed.
 - **Custom header-naming.** `@csvName("x")` annotation read by the derivation macro. Non-breaking.
 - **Readers.** A `CsvFieldDecoder` / `CsvRowDecoder` story mirroring the writer side. Independently shippable; no changes required to writer API.

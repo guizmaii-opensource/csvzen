@@ -181,6 +181,43 @@ object CsvRowEncoderSpec extends ZIOSpecDefault {
       },
     )
 
+  // Hand-built encoder via the .custom builder. Defined outside the suite so the
+  // anonymous-given form works at the case-class call sites below.
+  private final case class User(
+    id: Long,
+    email: String,
+    passwordHash: String,
+    name: String,
+  )
+  private given userPartialEncoder: CsvRowEncoder[User] =
+    CsvRowEncoder.custom(IndexedSeq("id", "name", "email")) { (u, out) =>
+      out.emitLong(u.id)
+      out.emitString(u.name)
+      out.emitString(u.email)
+    }
+
+  private val customSpec =
+    suite(".custom")(
+      test("uses the supplied header list verbatim") {
+        assertTrue(header[User] == IndexedSeq("id", "name", "email"))
+      },
+      test("encodes only the fields the lambda emits, in the lambda's order") {
+        val u = User(42L, "ada@example.com", "secret", "Ada")
+        assertTrue(writeRow(u) == "42,Ada,ada@example.com\r\n")
+      },
+      test("escaping still goes through the FieldEmitter") {
+        val u = User(1L, "a,b@example.com", "x", "he said \"hi\"")
+        assertTrue(writeRow(u) == "1,\"he said \"\"hi\"\"\",\"a,b@example.com\"\r\n")
+      },
+      test("writeHeader[A]() emits the supplied header row") {
+        val sw = new StringWriter
+        val w  = CsvWriter.unsafeFromWriter(sw, CsvConfig.default)
+        try w.writeHeader[User]()
+        finally w.close()
+        assertTrue(sw.toString == "id,name,email\r\n")
+      },
+    )
+
   override def spec: Spec[TestEnvironment & Scope, Any] =
-    suite("CsvRowEncoder")(arityHeadersSpec, encodeArityRoundTrip, codecMatchesHandWritten, negativeCompile)
+    suite("CsvRowEncoder")(arityHeadersSpec, encodeArityRoundTrip, codecMatchesHandWritten, customSpec, negativeCompile)
 }
