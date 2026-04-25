@@ -27,7 +27,7 @@ jobs:
       - name: tests
         run: sbt clean +test
 
-  formatting:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - run: env
@@ -40,5 +40,5 @@ jobs:
           distribution: temurin
           java-version: 17
           check-latest: true
-      - name: Formatting
-        run: sbt scalafmtSbtCheck scalafmtCheck test:scalafmtCheck
+      - name: scalafix + scalafmt check
+        run: sbt check
