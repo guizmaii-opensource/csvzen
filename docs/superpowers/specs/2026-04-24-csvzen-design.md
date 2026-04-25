@@ -386,7 +386,7 @@ For each of the 28 shipped types, asserted via `FieldEmitter` + `StringWriter`:
 
 - **Approach B: full-`inline` derivation.** Replace the `Array[CsvFieldEncoder[Any]]` + `productElement` machinery with a fully-unrolled inline macro that expands to `out.emitInt(a.age); out.emitString(a.name); …` at each call site. Eliminates the remaining `productElement` boxing of primitive fields and all typeclass dispatch, but costs compile time and debuggability. To be explored on an experimental branch and benchmarked against A.
 - **`csvzen-zio` module.** `CsvWriter.managed(path, config): ZIO[Scope, Throwable, CsvWriter]` plus a `ZSink[Any, Throwable, A, Nothing, Long]` factory (given `CsvRowEncoder[A]`) returning row count.
-- **`csvzen-test-kit` module.** A zio-test integration providing golden-file assertions for CSV output, modelled directly on `zio-json-golden` for ergonomic parity with the rest of the ZIO ecosystem.
+- **`csvzen-test-kit` module** *(shipped)*. A zio-test integration providing golden-file assertions for CSV output, modelled directly on `zio-json-golden` for ergonomic parity with the rest of the ZIO ecosystem.
 
   **Public API:**
 

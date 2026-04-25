@@ -8,16 +8,18 @@ default, with configurable delimiter, quote character and line terminator.
 
 ## Modules
 
-| Module        | Description                                               |
-|---------------|-----------------------------------------------------------|
-| `csvzen-core` | Streaming `CsvWriter`, `CsvConfig`, derived row encoders. |
+| Module            | Description                                                                 |
+|-------------------|-----------------------------------------------------------------------------|
+| `csvzen-core`     | Streaming `CsvWriter`, `CsvConfig`, derived row encoders.                   |
+| `csvzen-test-kit` | Golden-file assertions for `CsvRowEncoder` output, on top of `zio-test`.    |
 
 ## Install
 
 `csvzen` targets Scala 3.3+ (LTS).
 
 ```sbt
-libraryDependencies += "com.guizmaii" %% "csvzen-core" % "<latest-version>"
+libraryDependencies += "com.guizmaii" %% "csvzen-core"     % "<latest-version>"
+libraryDependencies += "com.guizmaii" %% "csvzen-test-kit" % "<latest-version>" % Test
 ```
 
 ## Quick start
@@ -185,6 +187,37 @@ line1\nline2   →   "line1\nline2"
   writer and discard the file.
 - `flush()` flushes the underlying `Writer`; `close()` flushes and then
   closes it.
+
+## Golden tests
+
+`csvzen-test-kit` ships golden-file assertions for `CsvRowEncoder` output,
+modelled on `zio-json-golden`. Add it to the `Test` config and call
+`goldenTest(gen)` from a `ZIOSpecDefault`:
+
+```scala
+import com.guizmaii.csvzen.core.*
+import com.guizmaii.csvzen.testkit.*
+import zio.test.*
+import zio.test.magnolia.DeriveGen
+
+object UserSpec extends ZIOSpecDefault {
+  final case class User(id: Int, name: String, active: Boolean) derives CsvRowEncoder
+
+  override def spec = suite("UserSpec")(
+    goldenTest(DeriveGen[User])
+  )
+}
+```
+
+First run writes `src/test/resources/golden/User_new.csv` and fails. Drop the
+`_new` suffix to accept the snapshot. Subsequent runs compare against the
+on-disk file; on mismatch a `_changed.csv` is written next to the original so
+you can diff. Promotion is always an explicit file rename — no env-var
+auto-update mode.
+
+See [`test-kit/README.md`](test-kit/README.md) for `GoldenConfiguration`
+options (custom `CsvConfig`, sample size, `relativePath`) and the full
+workflow.
 
 ## Build
 

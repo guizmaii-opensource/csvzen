@@ -71,6 +71,6 @@ object CsvWriter {
   ): CsvWriter =
     new CsvWriter(Files.newBufferedWriter(path, charset, options*), config)
 
-  private[core] def unsafeFromWriter(out: Writer, config: CsvConfig): CsvWriter =
+  private[csvzen] def unsafeFromWriter(out: Writer, config: CsvConfig): CsvWriter =
     new CsvWriter(out, config)
 }

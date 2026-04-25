@@ -29,7 +29,7 @@ lazy val root =
     .settings(noDoc *)
     .settings(publish / skip := true)
     .settings(crossScalaVersions := Nil) // https://www.scala-sbt.org/1.x/docs/Cross-Build.html#Cross+building+a+project+statefully,
-    .aggregate(core)
+    .aggregate(core, `test-kit`)
 
 lazy val core =
   project
@@ -40,6 +40,22 @@ lazy val core =
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio-test"     % zioVersion % Test,
         "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+      ),
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+    )
+
+lazy val `test-kit` =
+  project
+    .in(file("test-kit"))
+    .dependsOn(core)
+    .settings(stdSettings *)
+    .settings(
+      name := "csvzen-test-kit",
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio"               % zioVersion,
+        "dev.zio" %% "zio-test"          % zioVersion,
+        "dev.zio" %% "zio-test-magnolia" % zioVersion,
+        "dev.zio" %% "zio-test-sbt"      % zioVersion % Test,
       ),
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
     )
