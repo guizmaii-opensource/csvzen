@@ -73,8 +73,12 @@ final class FieldEmitter private[core] (out: Writer, config: CsvConfig) {
     out.write(java.lang.Double.toString(d))
   }
 
-  // Process digits in the non-positive domain so Int.MinValue / Long.MinValue need no
-  // special case (their absolute value has no positive Int/Long representation).
+  // Process digits with `n <= 0` throughout the loop. Positive inputs are negated
+  // once on entry so a single `('0' - n % 10)` extraction handles both signs. This
+  // avoids the Int.MinValue / Long.MinValue special case: their absolute value has
+  // no positive Int/Long representation, so we never compute it — we keep the
+  // original negative number and extract digits from it directly. Same trick the
+  // JDK's own digit conversion uses (see java.lang.Integer.getChars).
   private def writeInt(i: Int): Unit = {
     var n    = i
     if (n < 0) out.write('-'.toInt)
