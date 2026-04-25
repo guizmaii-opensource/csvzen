@@ -273,7 +273,7 @@ object UserSpec extends ZIOSpecDefault {
 > `String`-heavy records, hand-roll the generator with `Gen.alphaNumericString`
 > instead. `DeriveGen` also only ships instances for primitives + a handful of
 > stdlib types — for `BigInt` / `BigDecimal` / `UUID` / `Currency` / `java.time.*`
-> you need to provide a `Gen` by hand regardless. See `test-kit/README.md` and
+> you need to provide a `Gen` by hand regardless. See `modules/test-kit/README.md` and
 > `GoldenSpec` for the full pattern.
 
 First run writes `src/test/resources/golden/User_new.csv` and fails. Drop the
@@ -282,7 +282,7 @@ on-disk file; on mismatch a `_changed.csv` is written next to the original so
 you can diff. Promotion is always an explicit file rename — no env-var
 auto-update mode.
 
-See [`test-kit/README.md`](test-kit/README.md) for `GoldenConfiguration`
+See [`modules/test-kit/README.md`](modules/test-kit/README.md) for `GoldenConfiguration`
 options (custom `CsvConfig`, sample size, `relativePath`) and the full
 workflow.
 
