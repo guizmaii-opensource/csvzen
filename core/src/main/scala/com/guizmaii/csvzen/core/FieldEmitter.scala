@@ -16,7 +16,10 @@ final class FieldEmitter private[core] (out: Writer, config: CsvConfig) {
   private val quoteChar: Char        = config.quoteChar
   private val lineTerminator: String = config.lineTerminator
   private var first: Boolean         = true
-  private val scratch: Array[Char]   = new Array[Char](20)
+  // Reusable digit buffer for writeInt / writeLong. 19 chars is the max any signed
+  // integer type produces here: Long.MinValue's absolute value is 9223372036854775808
+  // (19 digits) and the sign is written separately, so it never enters this array.
+  private val scratch: Array[Char]   = new Array[Char](19)
 
   private[core] def beginRow(): Unit = first = true
 
