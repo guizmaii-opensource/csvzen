@@ -47,7 +47,7 @@ lazy val core =
 inThisBuild(
   List(
     organization := "com.guizmaii",
-    homepage     := Some(url("https://github.com/guizmaii/csvzen")),
+    homepage     := Some(url("https://github.com/guizmaii-opensource/csvzen")),
     licenses     := List("Apache 2.0" -> url("https://opensource.org/license/apache-2.0")),
     developers   := List(
       Developer(
