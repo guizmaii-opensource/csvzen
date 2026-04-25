@@ -1,6 +1,6 @@
 package com.guizmaii.csvzen.testkit
 
-import zio.{IO, Task, Trace, ZIO}
+import zio.{IO, Task, Trace, UIO, ZIO}
 
 import java.io.{File, IOException}
 import java.nio.charset.StandardCharsets
@@ -44,7 +44,11 @@ private[testkit] object filehelpers {
   def readCsvFromFile(path: Path)(using trace: Trace): Task[String] =
     ZIO.attemptBlocking(Files.readString(path, StandardCharsets.UTF_8))
 
-  /** Best-effort delete; missing path is not an error. */
-  def deleteIfExists(path: Path)(using trace: Trace): Task[Unit] =
-    ZIO.attemptBlocking { Files.deleteIfExists(path); () }
+  /**
+   * Best-effort delete: missing path is fine, and any `SecurityException` /
+   * `IOException` (e.g. a locked file on Windows) is swallowed so a janky cleanup
+   * never fails an otherwise-green test.
+   */
+  def deleteIfExists(path: Path)(using trace: Trace): UIO[Unit] =
+    ZIO.attemptBlocking { Files.deleteIfExists(path); () }.ignore
 }
