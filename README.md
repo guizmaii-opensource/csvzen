@@ -12,6 +12,7 @@ default, with configurable delimiter, quote character and line terminator.
 |-------------------|-----------------------------------------------------------------------------|
 | `csvzen-core`     | Streaming `CsvWriter`, `CsvConfig`, derived row encoders.                   |
 | `csvzen-test-kit` | Golden-file assertions for `CsvRowEncoder` output, on top of `zio-test`.    |
+| `csvzen-zio`      | ZIO bindings — `Scope`-managed `CsvWriter` and a `ZSink` for `ZStream`.     |
 
 ## Install
 
@@ -20,6 +21,7 @@ default, with configurable delimiter, quote character and line terminator.
 ```sbt
 libraryDependencies += "com.guizmaii" %% "csvzen-core"     % "<latest-version>"
 libraryDependencies += "com.guizmaii" %% "csvzen-test-kit" % "<latest-version>" % Test
+libraryDependencies += "com.guizmaii" %% "csvzen-zio"      % "<latest-version>"  // optional
 ```
 
 ### `-Xmax-inlines` for large case classes
@@ -285,6 +287,55 @@ auto-update mode.
 See [`modules/test-kit/README.md`](modules/test-kit/README.md) for `GoldenConfiguration`
 options (custom `CsvConfig`, sample size, `relativePath`) and the full
 workflow.
+
+## ZIO bindings
+
+`csvzen-zio` adds two thin helpers on top of `csvzen-core`:
+
+- **`openCsvWriter(path, config, …)`** opens a `CsvWriter` inside a `Scope`
+  so it's closed automatically at scope exit (success, failure, or
+  interruption). The `Scope` requirement lives in the return type
+  (`ZIO[Scope, Throwable, CsvWriter]`); the name doesn't need to repeat it.
+- **`csvSink[A](path, config, …)`** is a `ZSink[Any, Throwable, A, Nothing, Long]`
+  that writes a header row followed by one row per consumed `A`, returning
+  the number of rows written.
+
+```scala
+import com.guizmaii.csvzen.core.*
+import com.guizmaii.csvzen.zio.*
+import zio.*
+import zio.stream.ZStream
+import java.nio.file.Paths
+
+final case class Person(name: String, age: Int) derives CsvRowEncoder
+
+val people: ZStream[Any, Throwable, Person] = ZStream.fromIterable(
+  Vector(Person("Ada", 36), Person("Linus", 55), Person("Grace", 85))
+)
+
+val program: ZIO[Any, Throwable, Long] =
+  people.run(csvSink[Person](Paths.get("people.csv"), CsvConfig.default))
+```
+
+The sink owns the file handle for its lifetime; you don't have to manage it.
+For non-stream use cases, `openCsvWriter` plus `ZIO.scoped` gives the same
+guarantee.
+
+### Blocking executor
+
+Both the setup (open + write header) and each per-chunk write inside `csvSink`
+are already wrapped in `ZIO.blocking`, so file IO never lands on the default
+(CPU-bound) executor. **For the strongest guarantee — keeping the channel
+pump itself on the blocking pool between chunks, no executor ping-pong** —
+wrap the run call:
+
+```scala
+ZIO.blocking(stream.run(csvSink[Person](path, CsvConfig.default)))
+```
+
+That locks the entire sink-driven effect to the blocking executor for its
+full lifetime. Worth doing on hot streams where the per-chunk shift adds up;
+unnecessary for casual one-off writes.
 
 ## Build
 
