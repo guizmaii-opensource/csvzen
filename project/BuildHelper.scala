@@ -16,6 +16,10 @@ object BuildHelper {
       scalacOptions ++= Seq("-no-indent"),              // See https://x.com/ghostdogpr/status/1706589471469425074
       scalacOptions ++= Seq("-language:noAutoTupling"), // See https://github.com/scala/scala3/discussions/19255
       scalacOptions ++= Seq(s"-release:$javaTarget"),
+      // The default of 32 trips when `derives CsvRowEncoder` is used on a case class
+      // with ~25+ fields, because the inline derivation walks the tuple of field
+      // encoders one level per field. Bump to a comfortable ceiling.
+      scalacOptions ++= Seq("-Xmax-inlines:128"),
       scalacOptions --= (if (insideCI.value) Nil else Seq("-Xfatal-warnings")),
       // format: off
       tpolecatScalacOptions ++= Set(
