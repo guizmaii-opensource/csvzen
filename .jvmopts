@@ -1,0 +1,7 @@
+# This is a comment
+-Dfile.encoding=UTF8
+-Xms128M
+-Xmx4G
+-Xss16M
+-XX:+UseG1GC
+--enable-native-access=ALL-UNNAMED # Removes some warnings when starting sbt on JDK25+
