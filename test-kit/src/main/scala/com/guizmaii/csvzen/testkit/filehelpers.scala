@@ -15,16 +15,23 @@ private[testkit] object filehelpers {
    * `zio-json-golden` uses.
    */
   def getRootDir(file: File)(using trace: Trace): Task[File] =
-    if (file.getName == "target") ZIO.succeed(file)
+    if (file == null)
+      ZIO.fail(
+        new IllegalStateException(
+          "csvzen-test-kit could not locate a `target/` directory above the test resources. " +
+            "It assumes an sbt-style project layout (test classes under `<module>/target/...`)."
+        )
+      )
+    else if (file.getName == "target") ZIO.succeed(file)
     else ZIO.attempt(file.getParentFile).flatMap(getRootDir)
 
   def createGoldenDirectory(pathToDir: String)(using trace: Trace): Task[Path] = {
-    val rootFile =
-      try new File(getClass.getResource("/").toURI)
-      catch {
-        case _: IllegalArgumentException => new File(getClass.getResource(".").toURI)
-      }
+    val rootResource = Option(getClass.getResource("/")).orElse(Option(getClass.getResource(".")))
     for {
+      uri      <- ZIO
+                    .fromOption(rootResource.map(_.toURI))
+                    .orElseFail(new IllegalStateException("csvzen-test-kit: no classpath root resource available."))
+      rootFile <- ZIO.attempt(new File(uri))
       baseFile <- getRootDir(rootFile)
       goldenDir = new File(baseFile.getParentFile, pathToDir)
       _        <- ZIO.attemptBlocking(goldenDir.mkdirs())
@@ -36,4 +43,8 @@ private[testkit] object filehelpers {
 
   def readCsvFromFile(path: Path)(using trace: Trace): Task[String] =
     ZIO.attemptBlocking(Files.readString(path, StandardCharsets.UTF_8))
+
+  /** Best-effort delete; missing path is not an error. */
+  def deleteIfExists(path: Path)(using trace: Trace): Task[Unit] =
+    ZIO.attemptBlocking { Files.deleteIfExists(path); () }
 }

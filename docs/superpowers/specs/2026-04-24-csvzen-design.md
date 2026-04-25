@@ -403,11 +403,12 @@ For each of the 28 shipped types, asserted via `FieldEmitter` + `StringWriter`:
     csvConfig: CsvConfig = CsvConfig.default,
   )
   object GoldenConfiguration:
-    given default: GoldenConfiguration = GoldenConfiguration()
+    val default: GoldenConfiguration = GoldenConfiguration()
 
   def csvGoldenTest[A: Tag: CsvRowEncoder](
-    gen: Gen[Sized, A]
-  )(using GoldenConfiguration): Spec[TestEnvironment, Throwable]
+    gen: Gen[Sized, A],
+    config: GoldenConfiguration = GoldenConfiguration.default,
+  ): Spec[TestEnvironment, Throwable]
   ```
 
   **File layout & workflow** — copied verbatim from `zio-json-golden`:

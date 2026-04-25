@@ -50,13 +50,21 @@ property that auto-updates goldens.
 
 ## Configuration
 
+`csvGoldenTest` takes a `GoldenConfiguration` as its second parameter
+(defaulted to `GoldenConfiguration.default`). Pass an instance explicitly
+when you want to override:
+
 ```scala
+import com.guizmaii.csvzen.core.*
 import com.guizmaii.csvzen.testkit.*
 
-given GoldenConfiguration = GoldenConfiguration(
-  relativePath = "users",   // file lives at src/test/resources/golden/users/User.csv
-  sampleSize   = 200,       // 200 rows in the golden instead of the default 50
-  csvConfig    = CsvConfig(delimiter = '\t', lineTerminator = "\n"),
+csvGoldenTest(
+  DeriveGen[User],
+  GoldenConfiguration(
+    relativePath = "users",   // file lives at src/test/resources/golden/users/User.csv
+    sampleSize   = 200,       // 200 rows in the golden instead of the default 50
+    csvConfig    = CsvConfig(delimiter = '\t', lineTerminator = "\n"),
+  ),
 )
 ```
 

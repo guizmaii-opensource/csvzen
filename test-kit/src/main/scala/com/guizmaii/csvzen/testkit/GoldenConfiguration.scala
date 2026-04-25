@@ -22,5 +22,5 @@ final case class GoldenConfiguration(
 )
 
 object GoldenConfiguration {
-  given default: GoldenConfiguration = GoldenConfiguration()
+  val default: GoldenConfiguration = GoldenConfiguration()
 }

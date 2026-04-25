@@ -22,15 +22,21 @@ import com.guizmaii.csvzen.testkit.filehelpers.*
  *     `Sized` seed), compare to the on-disk file. On mismatch, write `<Name>_changed.csv`
  *     next to the original so you can diff. If the change is intentional, overwrite
  *     the original with `_changed`.
+ *   - On a passing run, any leftover `<Name>_new.csv` / `<Name>_changed.csv` from a
+ *     previous failed run is best-effort deleted so the workspace converges to clean.
  *
  * Promotion is always an explicit file rename — no environment variable or system
  * property "auto-update" mode.
  */
 def csvGoldenTest[A: Tag: CsvRowEncoder](
-  gen: Gen[Sized, A]
-)(using trace: Trace, config: GoldenConfiguration): Spec[TestEnvironment, Throwable] = {
-  val name = getName[A]
-  test(s"golden test for $name") {
+  gen: Gen[Sized, A],
+  config: GoldenConfiguration = GoldenConfiguration.default,
+)(using trace: Trace): Spec[TestEnvironment, Throwable] = {
+  val name      = getName[A]
+  val testLabel =
+    if (config.relativePath.isEmpty) s"golden test for $name"
+    else s"golden test for ${config.relativePath}/$name"
+  test(testLabel) {
     import config.{csvConfig, relativePath, sampleSize}
     for {
       resourceDir <- createGoldenDirectory(s"src/test/resources/golden/$relativePath")
@@ -49,16 +55,28 @@ private def validateTest[A: CsvRowEncoder](
   sampleSize: Int,
   csvConfig: CsvConfig,
 )(using trace: Trace): ZIO[Sized, Throwable, TestResult] = {
-  val filePath = resourceDir.resolve(s"$name.csv")
+  val filePath    = resourceDir.resolve(s"$name.csv")
+  val changedPath = resourceDir.resolve(s"${name}_changed.csv")
+  val newPath     = resourceDir.resolve(s"${name}_new.csv")
+
   for {
     currentCsv <- readCsvFromFile(filePath)
     samples    <- generateSample(gen, sampleSize)
     newCsv      = encodeSample(samples, csvConfig)
-    assertion  <- if (newCsv == currentCsv) ZIO.succeed(assertTrue(newCsv == currentCsv))
-                  else {
-                    val changedPath = resourceDir.resolve(s"${name}_changed.csv")
-                    writeCsvToFile(changedPath, newCsv) *>
+    assertion  <- if (newCsv == currentCsv) {
+                    // Workspace converges to clean on green: drop any stale sidecar
+                    // files left over from a previous failing run.
+                    deleteIfExists(changedPath) *> deleteIfExists(newPath) *>
                       ZIO.succeed(assertTrue(newCsv == currentCsv))
+                  } else {
+                    val message =
+                      s"Golden mismatch for $filePath. Wrote new output to $changedPath. " +
+                        s"If this change is intentional, replace ${filePath.getFileName} with " +
+                        s"${changedPath.getFileName} and re-run; otherwise the test caught a regression."
+                    writeCsvToFile(changedPath, newCsv) *>
+                      ZIO.succeed(
+                        TestResult(TestArrow.make((_: Any) => TestTrace.fail(message).withLocation(Some(trace.toString))))
+                      )
                   }
   } yield assertion
 }
@@ -72,13 +90,12 @@ private def createNewTest[A: CsvRowEncoder](
 )(using trace: Trace): ZIO[Sized, Throwable, TestResult] = {
   val newPath       = resourceDir.resolve(s"${name}_new.csv")
   val failureString =
-    s"No existing golden test for ${resourceDir.resolve(s"$name.csv")}. Remove _new from the suffix and re-run the test."
+    s"No existing golden test for ${resourceDir.resolve(s"$name.csv")}. " +
+      "Remove _new from the suffix and re-run the test."
 
   for {
     samples  <- generateSample(gen, sampleSize)
     csv       = encodeSample(samples, csvConfig)
-    _        <- ZIO
-                  .ifZIO(ZIO.attemptBlocking(Files.exists(newPath)))(ZIO.unit, ZIO.attemptBlocking(Files.createFile(newPath)))
     _        <- writeCsvToFile(newPath, csv)
     assertion = TestArrow.make((_: Any) => TestTrace.fail(failureString).withLocation(Some(trace.toString)))
   } yield TestResult(assertion)
