@@ -190,6 +190,48 @@ line1\nline2   →   "line1\nline2"
 
 ## Golden tests
 
+### Why you want them
+
+CSV output is a wire format. Once consumers exist — a downstream pipeline,
+a partner who imports the file daily, an Excel sheet someone wired up two
+years ago — your encoder's output is **a contract**. Any change in bytes
+the encoder produces is a change in that contract: a column reordered, a
+date format tweaked, a CRLF turned into LF, a `None` rendered as `""` instead
+of `"null"`. Each is the kind of "harmless cleanup" that quietly breaks a
+consumer in production three weeks later.
+
+A golden test (a.k.a. snapshot test) is a small, opinionated answer to that
+problem:
+
+1. You commit a reference file — *the golden* — that captures what the
+   encoder produces today for a representative set of inputs.
+2. On every test run, the encoder is re-executed against the same inputs
+   and the output is compared **byte-for-byte** to the golden.
+3. If anything in the encoder's output changes — intended or not — the
+   test fails and shows you the diff.
+
+That's the whole mechanism. The value comes from what it forces:
+
+- **No silent format changes.** Refactoring a `CsvFieldEncoder`, swapping a
+  date library, "fixing" a quoting rule — all of it surfaces as a failing
+  test with a visible diff, not as a wire-format regression that ships.
+- **Cheap to write, dense in coverage.** One `csvGoldenTest(gen)` call
+  exercises 20+ rows of randomised but stable input through the entire
+  encoder stack. You don't write per-field assertions; you commit one file.
+- **The diff is the spec.** When the change *is* intentional, you just open
+  the `_changed.csv` next to the original, eyeball the diff to confirm the
+  delta is what you wanted, and rename it over the original. The PR review
+  then has a one-file diff that says exactly how the wire format moved.
+- **Catches the boring stuff for free.** Line-terminator drift, accidental
+  quoting of a previously-unquoted column, an extra trailing newline, an
+  encoding library that started emitting `+00:00` instead of `Z` — all
+  surface immediately, not at 3 AM in production.
+
+The cost is one checked-in file per encoder shape and one rename when the
+contract intentionally changes. Worth it.
+
+### Usage
+
 `csvzen-test-kit` ships golden-file assertions for `CsvRowEncoder` output,
 modelled on `zio-json-golden`. Add it to the `Test` config and call
 `csvGoldenTest(gen)` from a `ZIOSpecDefault` (the prefix avoids a name clash
