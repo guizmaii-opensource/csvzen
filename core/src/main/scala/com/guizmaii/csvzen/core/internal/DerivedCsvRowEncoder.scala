@@ -10,9 +10,9 @@ final class DerivedCsvRowEncoder[A <: Product](
 
   private val n: Int = encoders.length
 
-  val headerNames: IndexedSeq[String] = ArraySeq.unsafeWrapArray(labels)
+  override val headerNames: IndexedSeq[String] = ArraySeq.unsafeWrapArray(labels)
 
-  def encode(a: A, out: FieldEmitter): Unit = {
+  override def encode(a: A, out: FieldEmitter): Unit = {
     var i = 0
     while (i < n) {
       encoders(i).encode(a.productElement(i), out)
