@@ -399,7 +399,7 @@ For each of the 28 shipped types, asserted via `FieldEmitter` + `StringWriter`:
 
   final case class GoldenConfiguration(
     relativePath: String = "",
-    sampleSize: Int      = 20,
+    sampleSize: Int      = 50,
     csvConfig: CsvConfig = CsvConfig.default,
   )
   object GoldenConfiguration:

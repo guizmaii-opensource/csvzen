@@ -17,7 +17,7 @@ import com.guizmaii.csvzen.core.CsvConfig
  */
 final case class GoldenConfiguration(
   relativePath: String = "",
-  sampleSize: Int = 20,
+  sampleSize: Int = 50,
   csvConfig: CsvConfig = CsvConfig.default,
 )
 

@@ -216,7 +216,7 @@ That's the whole mechanism. The value comes from what it forces:
   date library, "fixing" a quoting rule — all of it surfaces as a failing
   test with a visible diff, not as a wire-format regression that ships.
 - **Cheap to write, dense in coverage.** One `csvGoldenTest(gen)` call
-  exercises 20+ rows of randomised but stable input through the entire
+  exercises 50+ rows of randomised but stable input through the entire
   encoder stack. You don't write per-field assertions; you commit one file.
 - **The diff is the spec.** When the change *is* intentional, you just open
   the `_changed.csv` next to the original, eyeball the diff to confirm the

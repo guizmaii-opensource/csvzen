@@ -55,7 +55,7 @@ import com.guizmaii.csvzen.testkit.*
 
 given GoldenConfiguration = GoldenConfiguration(
   relativePath = "users",   // file lives at src/test/resources/golden/users/User.csv
-  sampleSize   = 50,        // 50 rows in the golden instead of the default 20
+  sampleSize   = 200,       // 200 rows in the golden instead of the default 50
   csvConfig    = CsvConfig(delimiter = '\t', lineTerminator = "\n"),
 )
 ```
