@@ -101,12 +101,12 @@ object CsvWriterSpec extends ZIOSpecDefault {
         assertTrue(out == "")
       },
       test("iterates a List in order") {
-        val out = writeToString()(_.writeAll(List(Pair(10, "x"))))
-        assertTrue(out == "10,x\r\n")
+        val out = writeToString()(_.writeAll(List(Pair(10, "x"), Pair(20, "y"), Pair(30, "z"))))
+        assertTrue(out == "10,x\r\n20,y\r\n30,z\r\n")
       },
       test("iterates a LazyList in order") {
-        val out = writeToString()(_.writeAll(LazyList(Pair(7, "q"))))
-        assertTrue(out == "7,q\r\n")
+        val out = writeToString()(_.writeAll(LazyList(Pair(7, "q"), Pair(8, "r"), Pair(9, "s"))))
+        assertTrue(out == "7,q\r\n8,r\r\n9,s\r\n")
       },
     )
 
