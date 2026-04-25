@@ -22,6 +22,21 @@ libraryDependencies += "com.guizmaii" %% "csvzen-core"     % "<latest-version>"
 libraryDependencies += "com.guizmaii" %% "csvzen-test-kit" % "<latest-version>" % Test
 ```
 
+### `-Xmax-inlines` for large case classes
+
+`derives CsvRowEncoder` walks the tuple of field encoders inline-recursively,
+one level per field. Scala 3's default `-Xmax-inlines:32` is enough up to
+~25 fields; beyond that the derivation trips with *"Maximal number of
+successive inlines (32) exceeded"*. Bump it in your `build.sbt`:
+
+```sbt
+scalacOptions ++= Seq("-Xmax-inlines:128")
+```
+
+128 covers the maximum useful arity (the JDK's case-class implementation
+limit isn't far behind), and the cost is paid only at compile time, only
+in files that derive a large encoder.
+
 ## Quick start
 
 ### Write a case class to a file
