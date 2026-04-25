@@ -38,25 +38,26 @@ csvzen keeps the codec concept and strips everything else: a typed emitter that 
 
 ## 3. Module layout
 
-Multi-module sbt build from the start, with a single live sub-project for v1:
+Multi-module sbt build, with each published artefact under `modules/`:
 
 ```
 csvzen/
   build.sbt                 (root aggregate)
   project/
-  core/
-    src/main/scala/com/guizmaii/csvzen/core/
-    src/main/scala/com/guizmaii/csvzen/core/internal/
-    src/test/scala/com/guizmaii/csvzen/core/
+  modules/
+    core/                   (csvzen-core)
+      src/main/scala/com/guizmaii/csvzen/core/
+      src/main/scala/com/guizmaii/csvzen/core/internal/
+      src/test/scala/com/guizmaii/csvzen/core/
+    test-kit/               (csvzen-test-kit, depends on core)
+    zio/                    (csvzen-zio, depends on core)
 ```
 
-- Published artefact id: `csvzen-core`.
-- Base package: `com.guizmaii.csvzen.core` (public API).
+- Published artefact ids: `csvzen-core`, `csvzen-test-kit`, `csvzen-zio`.
+- Base packages: `com.guizmaii.csvzen.core` (public API), `com.guizmaii.csvzen.testkit`, `com.guizmaii.csvzen.zio`.
 - Internals: `com.guizmaii.csvzen.core.internal` (not exported).
-- No external runtime dependencies. Stdlib + JDK only.
-- Test dependency: `dev.zio::zio-test` / `dev.zio::zio-test-sbt` (matches the broader workspace convention — no runtime impact).
+- `csvzen-core` has no external runtime dependencies — stdlib + JDK only. `csvzen-test-kit` depends on `dev.zio::zio-test` + `dev.zio::zio-test-magnolia`. `csvzen-zio` depends on `dev.zio::zio` + `dev.zio::zio-streams`.
 - Scala 3.3.7; max line length 120 (existing project scalafmt assumed).
-- Adding `csvzen-zio` later is a small `build.sbt` addition (`lazy val zio = project.dependsOn(core)`); no public-API changes required.
 
 ## 4. Public API
 
@@ -385,7 +386,7 @@ For each of the 28 shipped types, asserted via `FieldEmitter` + `StringWriter`:
 ## 10. Future considerations
 
 - **Approach B: full-`inline` derivation.** Replace the `Array[CsvFieldEncoder[Any]]` + `productElement` machinery with a fully-unrolled inline macro that expands to `out.emitInt(a.age); out.emitString(a.name); …` at each call site. Eliminates the remaining `productElement` boxing of primitive fields and all typeclass dispatch, but costs compile time and debuggability. To be explored on an experimental branch and benchmarked against A.
-- **`csvzen-zio` module.** `CsvWriter.managed(path, config): ZIO[Scope, Throwable, CsvWriter]` plus a `ZSink[Any, Throwable, A, Nothing, Long]` factory (given `CsvRowEncoder[A]`) returning row count.
+- **`csvzen-zio` module** *(shipped)*. `openCsvWriter(path, config, …): ZIO[Scope, Throwable, CsvWriter]` plus a `ZSink[Any, Throwable, A, Nothing, Long]` factory (`csvSink[A: CsvRowEncoder]`) returning row count.
 - **`csvzen-test-kit` module** *(shipped)*. A zio-test integration providing golden-file assertions for CSV output, modelled directly on `zio-json-golden` for ergonomic parity with the rest of the ZIO ecosystem.
 
   **Public API:**
