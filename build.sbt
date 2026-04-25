@@ -2,23 +2,25 @@ import BuildHelper.{noDoc, stdSettings}
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
-ThisBuild / organization := "com.guizmaii"
-ThisBuild / name         := "scala-nimbus-jose-jwt"
-
-ThisBuild / scalafmtOnCompile := true
+ThisBuild / scalaVersion      := "3.3.7"
 ThisBuild / scalafmtCheck     := true
 ThisBuild / scalafmtSbtCheck  := true
-
-ThisBuild / scalaVersion := "3.3.7"
+ThisBuild / scalafmtOnCompile := !insideCI.value
+ThisBuild / scalafixOnCompile := !insideCI.value
+ThisBuild / semanticdbEnabled := true
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision // use Scalafix compatible version
 
 // ### Aliases ###
 
 addCommandAlias("tc", "Test/compile")
 addCommandAlias("ctc", "clean; tc")
 addCommandAlias("rctc", "reload; ctc")
+addCommandAlias("fix", "scalafixAll; scalafmtAll; scalafmtSbt")
+addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll; scalafmtSbtCheck")
 
 // ### Dependencies ###
 
+lazy val zioVersion = "2.1.25"
 
 // ### Modules ###
 
@@ -34,9 +36,13 @@ lazy val core =
     .in(file("core"))
     .settings(stdSettings *)
     .settings(
-      name := "csvzen-core"
+      name := "csvzen-core",
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio-test"     % zioVersion % Test,
+        "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+      ),
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
     )
-
 
 inThisBuild(
   List(
