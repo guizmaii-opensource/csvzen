@@ -36,10 +36,10 @@ object FieldEmitterSpec extends ZIOSpecDefault {
         val values = Seq(-1, -9, -10, -99, -100, -12345, Int.MinValue + 1, Int.MinValue)
         assertTrue(values.forall(v => firstField(cfg)(_.emitInt(v)) == v.toString))
       },
-      test("matches Integer.toString on a randomised sweep") {
-        val rng    = new scala.util.Random(0xc0ffee)
-        val sample = (0 until 10000).map(_ => rng.nextInt())
-        assertTrue(sample.forall(v => firstField(cfg)(_.emitInt(v)) == Integer.toString(v)))
+      test("matches Integer.toString on any Int (PBT)") {
+        check(Gen.int) { v =>
+          assertTrue(firstField(cfg)(_.emitInt(v)) == Integer.toString(v))
+        }
       },
     )
 
@@ -63,10 +63,10 @@ object FieldEmitterSpec extends ZIOSpecDefault {
         )
         assertTrue(values.forall(v => firstField(cfg)(_.emitLong(v)) == v.toString))
       },
-      test("matches java.lang.Long.toString on a randomised sweep") {
-        val rng    = new scala.util.Random(0xdeadbeefL)
-        val sample = (0 until 10000).map(_ => rng.nextLong())
-        assertTrue(sample.forall(v => firstField(cfg)(_.emitLong(v)) == java.lang.Long.toString(v)))
+      test("matches java.lang.Long.toString on any Long (PBT)") {
+        check(Gen.long) { v =>
+          assertTrue(firstField(cfg)(_.emitLong(v)) == java.lang.Long.toString(v))
+        }
       },
     )
 

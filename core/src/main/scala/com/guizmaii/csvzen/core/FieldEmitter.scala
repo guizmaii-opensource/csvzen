@@ -73,43 +73,37 @@ final class FieldEmitter private[core] (out: Writer, config: CsvConfig) {
     out.write(java.lang.Double.toString(d))
   }
 
-  private def writeInt(i: Int): Unit =
-    if (i == Integer.MIN_VALUE) out.write("-2147483648")
-    else {
-      var n    = i
-      if (n < 0) {
-        out.write('-'.toInt)
-        n = -n
-      }
-      var pos  = scratch.length
-      var cont = true
-      while (cont) {
-        pos -= 1
-        scratch(pos) = ('0' + (n % 10)).toChar
-        n /= 10
-        cont = n != 0
-      }
-      out.write(scratch, pos, scratch.length - pos)
+  // Process digits in the non-positive domain so Int.MinValue / Long.MinValue need no
+  // special case (their absolute value has no positive Int/Long representation).
+  private def writeInt(i: Int): Unit = {
+    var n    = i
+    if (n < 0) out.write('-'.toInt)
+    else n = -n
+    var pos  = scratch.length
+    var cont = true
+    while (cont) {
+      pos -= 1
+      scratch(pos) = ('0' - (n % 10)).toChar
+      n /= 10
+      cont = n != 0
     }
+    out.write(scratch, pos, scratch.length - pos)
+  }
 
-  private def writeLong(l: Long): Unit =
-    if (l == java.lang.Long.MIN_VALUE) out.write("-9223372036854775808")
-    else {
-      var n    = l
-      if (n < 0L) {
-        out.write('-'.toInt)
-        n = -n
-      }
-      var pos  = scratch.length
-      var cont = true
-      while (cont) {
-        pos -= 1
-        scratch(pos) = ('0' + (n % 10L)).toChar
-        n /= 10L
-        cont = n != 0L
-      }
-      out.write(scratch, pos, scratch.length - pos)
+  private def writeLong(l: Long): Unit = {
+    var n    = l
+    if (n < 0L) out.write('-'.toInt)
+    else n = -n
+    var pos  = scratch.length
+    var cont = true
+    while (cont) {
+      pos -= 1
+      scratch(pos) = ('0' - (n % 10L)).toChar
+      n /= 10L
+      cont = n != 0L
     }
+    out.write(scratch, pos, scratch.length - pos)
+  }
 
   private def writeEscaped(s: String): Unit = {
     val len          = s.length

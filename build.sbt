@@ -2,9 +2,6 @@ import BuildHelper.{noDoc, stdSettings}
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
-ThisBuild / organization := "com.guizmaii"
-ThisBuild / name         := "csvzen"
-
 ThisBuild / scalaVersion      := "3.3.7"
 ThisBuild / scalafmtCheck     := true
 ThisBuild / scalafmtSbtCheck  := true

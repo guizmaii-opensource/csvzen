@@ -1,6 +1,6 @@
 package com.guizmaii.csvzen.core
 
-import java.io.Writer
+import java.io.{Flushable, Writer}
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.{Files, OpenOption, Path}
 
@@ -14,7 +14,7 @@ import java.nio.file.{Files, OpenOption, Path}
  * to recover from partial row writes; a caller that catches a mid-row failure must close
  * the writer and discard the file rather than writing further rows.
  */
-final class CsvWriter private[core] (out: Writer, config: CsvConfig) extends AutoCloseable {
+final class CsvWriter private[core] (out: Writer, config: CsvConfig) extends AutoCloseable with Flushable {
 
   private[core] val emitter: FieldEmitter = new FieldEmitter(out, config)
 
@@ -49,8 +49,9 @@ final class CsvWriter private[core] (out: Writer, config: CsvConfig) extends Aut
   }
 
   /** Flushes the underlying `Writer`, pushing buffered bytes to disk. */
-  def flush(): Unit = out.flush()
+  override def flush(): Unit = out.flush()
 
+  /** Flushes and closes the underlying `Writer` (`Writer.close` flushes before closing). */
   override def close(): Unit = out.close()
 }
 
