@@ -166,7 +166,7 @@ A single `FieldEmitter` instance per `CsvWriter`, reused for every row.
 - `out: java.io.Writer` — the sink.
 - `delimiter: Int`, `quoteChar: Int`, `lineTerminator: String` — unpacked from `CsvConfig` in the constructor so each emit is a direct field read.
 - `first: Boolean` — "is this the first field of the current row?".
-- `scratch: Array[Char]` of length 20 — enough for `Long.MinValue` = `-9223372036854775808` (20 chars). Reused for every integer emit.
+- `scratch: Array[Char]` of length 19 — enough for any signed integer's digits. `Long.MinValue`'s absolute value is `9223372036854775808` (19 digits); the sign is written separately and never enters the buffer. Reused for every integer emit.
 
 **Row lifecycle (package-private, called only by `CsvWriter`):**
 
@@ -181,7 +181,7 @@ if (!first) out.write(delimiter) else first = false
 
 Codecs therefore never think about delimiters. Each `emitX` call is a self-contained "one field".
 
-**Integer emission (`emitInt` / `emitLong`).** Reverse-digit loop into `scratch`, then a single `out.write(scratch, offset, len)`. Special-case `Int.MinValue` / `Long.MinValue` because `-MIN_VALUE` overflows; after the sign branch, operate on a positive number.
+**Integer emission (`emitInt` / `emitLong`).** Reverse-digit loop into `scratch`, then a single `out.write(scratch, offset, len)`. Digits are extracted in the **non-positive domain** (`n ≤ 0` throughout the loop): if the input is negative the leading `-` is written and `n` keeps its negative value; if positive `n` is negated once on entry. The loop then uses `('0' - n % 10).toChar` per digit. This eliminates the `Int.MinValue` / `Long.MinValue` special case — their absolute value has no positive `Int`/`Long` representation, so we never compute it. Same trick the JDK's own `java.lang.Integer.getChars` uses.
 
 **Short / Byte.** Delegate to `emitInt`.
 

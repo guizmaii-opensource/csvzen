@@ -6,6 +6,7 @@ ThisBuild / scalaVersion      := "3.3.7"
 ThisBuild / scalafmtCheck     := true
 ThisBuild / scalafmtSbtCheck  := true
 ThisBuild / scalafmtOnCompile := !insideCI.value
+ThisBuild / scalafixOnCompile := !insideCI.value
 ThisBuild / semanticdbEnabled := true
 ThisBuild / semanticdbVersion := scalafixSemanticdb.revision // use Scalafix compatible version
 
@@ -14,6 +15,8 @@ ThisBuild / semanticdbVersion := scalafixSemanticdb.revision // use Scalafix com
 addCommandAlias("tc", "Test/compile")
 addCommandAlias("ctc", "clean; tc")
 addCommandAlias("rctc", "reload; ctc")
+addCommandAlias("fix", "scalafixAll; scalafmtAll; scalafmtSbt")
+addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll; scalafmtSbtCheck")
 
 // ### Dependencies ###
 
