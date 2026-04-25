@@ -1,1 +1,5 @@
+# Golden CSV files in csvzen-test-kit are byte-exact snapshots produced by the
+# encoder, including its CRLF line terminator. Tell git to leave them alone so
+# autocrlf / line-ending normalisation doesn't corrupt them across platforms.
+test-kit/src/test/resources/golden/**/*.csv -text
 modules/bench/results/**/*.json filter=lfs diff=lfs merge=lfs -text

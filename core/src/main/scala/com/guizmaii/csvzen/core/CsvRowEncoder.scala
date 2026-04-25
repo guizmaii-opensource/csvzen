@@ -11,6 +11,15 @@ trait CsvRowEncoder[-A] {
 
 object CsvRowEncoder {
 
+  /**
+   * Derives a `CsvRowEncoder[A]` for any flat `Product`. Header names come from the
+   * field labels in declaration order.
+   *
+   * Note: the derivation walks the tuple of field encoders inline-recursively, one
+   * level per field. Scala 3's default `-Xmax-inlines:32` is enough up to ~25 fields;
+   * beyond that the compiler trips with *"Maximal number of successive inlines (32)
+   * exceeded"*. Bump the limit in your build (e.g. `scalacOptions += "-Xmax-inlines:128"`).
+   */
   inline def derived[A <: Product](using m: Mirror.ProductOf[A]): CsvRowEncoder[A] = {
     val labels   = labelsOf[m.MirroredElemLabels]
     val encoders = encodersOf[m.MirroredElemTypes]
