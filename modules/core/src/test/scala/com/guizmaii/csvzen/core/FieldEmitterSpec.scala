@@ -253,6 +253,38 @@ object FieldEmitterSpec extends ZIOSpecDefault {
       },
     )
 
+  private val emitOptionSpec =
+    suite("::emit(Option[A])")(
+      test("Some(value) writes the encoded inner value (String)") {
+        assertTrue(firstField(cfg)(_.emit(Some("hello"))) == "hello")
+      },
+      test("Some(value) writes the encoded inner value (Int)") {
+        assertTrue(firstField(cfg)(_.emit(Some(42))) == "42")
+      },
+      test("Some(value) writes the encoded inner value (Boolean)") {
+        assertTrue(firstField(cfg)(_.emit(Some(true))) == "true")
+      },
+      test("None writes an empty cell") {
+        assertTrue(firstField(cfg)(_.emit(Option.empty[String])) == "")
+      },
+      test("Some quotes/escapes the inner value via its encoder") {
+        // "a,b" needs quoting per the default CSV config — emit(Some(...)) must
+        // route through emitString, not bypass the escaping logic.
+        assertTrue(firstField(cfg)(_.emit(Some("a,b"))) == "\"a,b\"")
+      },
+      test("delimiter placement: None then Some, Some then None") {
+        val noneThenSome =
+          firstField(cfg) { e => e.emit(Option.empty[Int]); e.emit(Some(1)) }
+        val someThenNone =
+          firstField(cfg) { e => e.emit(Some(1)); e.emit(Option.empty[Int]) }
+        assertTrue(noneThenSome == ",1", someThenNone == "1,")
+      },
+      test("works for any type with a CsvFieldEncoder (UUID)") {
+        val u = java.util.UUID.fromString("00000000-0000-0000-0000-000000000001")
+        assertTrue(firstField(cfg)(_.emit(Some(u))) == u.toString)
+      },
+    )
+
   override def spec: Spec[TestEnvironment & Scope, Any] =
     suite("FieldEmitter")(
       emitIntSpec,
@@ -265,6 +297,7 @@ object FieldEmitterSpec extends ZIOSpecDefault {
       emitCharSpec,
       emitStringSpec,
       emitEmptySpec,
+      emitOptionSpec,
       delimiterPlacementSpec,
     )
 }
