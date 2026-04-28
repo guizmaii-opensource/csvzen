@@ -138,6 +138,88 @@ object CsvZioSpec extends ZIOSpecDefault {
       },
     )
 
+  private val sinkDiscardSpec =
+    suite("csvSinkDiscard")(
+      test("consumes a ZStream of A, writes header + rows, returns Unit") {
+        withTmpFile { path =>
+          val rows = Vector(Person("Ada", 36), Person("Linus", 55), Person("Grace", 85))
+          val sink = csvSinkDiscard[Person](path, CsvConfig.default)
+          ZStream
+            .fromIterable(rows)
+            .run(sink)
+            .flatMap(unit =>
+              readUtf8(path).map(contents =>
+                assertTrue(
+                  unit == (),
+                  contents == "name,age\r\nAda,36\r\nLinus,55\r\nGrace,85\r\n",
+                )
+              )
+            )
+        }
+      },
+      test("writes only the header row when the stream is empty") {
+        withTmpFile { path =>
+          val sink = csvSinkDiscard[Person](path, CsvConfig.default)
+          ZStream.empty
+            .run(sink)
+            .zipRight(readUtf8(path))
+            .map(contents => assertTrue(contents == "name,age\r\n"))
+        }
+      },
+      // Multi-chunk smoke test — mirrors the csvSink coverage to lock in that the
+      // recursive loop handles N chunks, not just one.
+      test("writes correctly across multiple chunks") {
+        withTmpFile { path =>
+          val chunk1 = Chunk(Person("Ada", 36), Person("Linus", 55))
+          val chunk2 = Chunk(Person("Grace", 85))
+          val chunk3 = Chunk(Person("Edsger", 72), Person("Alan", 41), Person("Donald", 86))
+          val sink   = csvSinkDiscard[Person](path, CsvConfig.default)
+          ZStream
+            .fromChunks(chunk1, chunk2, chunk3)
+            .run(sink)
+            .zipRight(readUtf8(path))
+            .map(contents =>
+              assertTrue(
+                contents ==
+                  "name,age\r\n" +
+                  "Ada,36\r\nLinus,55\r\n" +
+                  "Grace,85\r\n" +
+                  "Edsger,72\r\nAlan,41\r\nDonald,86\r\n"
+              )
+            )
+        }
+      },
+      test("propagates upstream failures and closes the writer") {
+        withTmpFile { path =>
+          val boom   = new RuntimeException("boom")
+          val sink   = csvSinkDiscard[Person](path, CsvConfig.default)
+          val stream = ZStream.fromIterable(Vector(Person("Ada", 36))) ++ ZStream.fail(boom)
+          stream
+            .run(sink)
+            .either
+            .flatMap(result =>
+              readUtf8(path).map(contents =>
+                assertTrue(
+                  result.left.toOption.exists(_.getMessage == "boom"),
+                  contents == "name,age\r\nAda,36\r\n",
+                )
+              )
+            )
+        }
+      },
+      test("releases the writer on fiber interruption") {
+        withTmpFile { path =>
+          val sink = csvSinkDiscard[Person](path, CsvConfig.default)
+          ZStream.never
+            .run(sink)
+            .fork
+            .flatMap(fiber => Live.live(ZIO.sleep(50.millis)).zipRight(fiber.interrupt))
+            .zipRight(readUtf8(path))
+            .map(contents => assertTrue(contents == "name,age\r\n"))
+        }
+      },
+    )
+
   override def spec: Spec[TestEnvironment & Scope, Any] =
-    suite("csvzen-zio")(managedSpec, sinkSpec)
+    suite("csvzen-zio")(managedSpec, sinkSpec, sinkDiscardSpec)
 }
