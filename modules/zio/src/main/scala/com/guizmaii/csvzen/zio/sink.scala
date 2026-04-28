@@ -72,3 +72,38 @@ def csvSink[A](
         }
     }
   }
+
+/**
+ * Like [[csvSink]], but does not track a row count — the terminal value is
+ * `Unit`. Use this when the count is irrelevant: it skips the per-chunk
+ * increment and the captured mutable cell.
+ *
+ * See [[csvSink]] for IO/blocking executor notes.
+ */
+def csvSinkDiscard[A](
+  path: Path,
+  config: CsvConfig,
+  charset: Charset = StandardCharsets.UTF_8,
+  options: OpenOption*,
+)(using enc: CsvRowEncoder[A]): ZSink[Any, Throwable, A, Nothing, Unit] =
+  ZSink.unwrapScoped {
+    ZIO.blocking {
+      ZIO
+        .fromAutoCloseable(ZIO.attempt(CsvWriter.open(path, config, charset, options*)))
+        .flatMap { writer =>
+          ZIO
+            .attempt(writer.writeHeader[A]())
+            .as {
+              @threadUnsafe
+              lazy val loop: ZChannel[Any, ZNothing, Chunk[A], Any, Throwable, Chunk[Nothing], Unit] =
+                ZChannel.readWithCause(
+                  in = chunk => ZChannel.fromZIO(ZIO.attemptBlocking(writer.writeAll(chunk))) *> loop,
+                  halt = cause => ZChannel.refailCause(cause),
+                  done = _ => ZChannel.succeedNow(()),
+                )
+
+              ZSink.fromChannel(loop)
+            }
+        }
+    }
+  }
