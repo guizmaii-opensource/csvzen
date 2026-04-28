@@ -76,6 +76,17 @@ final class FieldEmitter private[core] (out: Writer, config: CsvConfig) {
     out.write(java.lang.Double.toString(d))
   }
 
+  /**
+   * Emits an `Option[A]`: `Some(a)` is encoded via the in-scope `CsvFieldEncoder[A]`,
+   * `None` is written as an empty cell. Lets custom encoders write
+   * `out.emit(record.optionalField)` instead of pattern-matching on every `Option`.
+   */
+  def emit[A](opt: Option[A])(using enc: CsvFieldEncoder[A]): Unit =
+    opt match {
+      case Some(a) => enc.encode(a, this)
+      case None    => emitEmpty()
+    }
+
   // Process digits with `n <= 0` throughout the loop. Positive inputs are negated
   // once on entry so a single `('0' - n % 10)` extraction handles both signs. This
   // avoids the Int.MinValue / Long.MinValue special case: their absolute value has
