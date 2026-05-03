@@ -152,8 +152,10 @@ class CsvWriteBenchSmallMedium {
 @Fork(
   value = 1,
   jvmArgs = Array(
-    "-Xms4g",
-    "-Xmx4g",
+    // 4× 10M-row Vector[A] data fixtures live for the trial; StringHeavy alone
+    // is ~3 GB and the four together hit ~6 GB before GC headroom and JIT.
+    "-Xms10g",
+    "-Xmx10g",
     "-XX:+UseG1GC",
     "--add-modules",
     "jdk.incubator.vector",
