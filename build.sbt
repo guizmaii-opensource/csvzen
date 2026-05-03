@@ -29,7 +29,7 @@ lazy val root =
     .settings(noDoc *)
     .settings(publish / skip := true)
     .settings(crossScalaVersions := Nil) // https://www.scala-sbt.org/1.x/docs/Cross-Build.html#Cross+building+a+project+statefully,
-    .aggregate(core, `test-kit`, zio)
+    .aggregate(core, `test-kit`, zio, bench)
 
 lazy val core =
   project
@@ -72,6 +72,28 @@ lazy val zio =
         "dev.zio" %% "zio-streams"  % zioVersion,
         "dev.zio" %% "zio-test"     % zioVersion % Test,
         "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+      ),
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+    )
+
+lazy val bench =
+  project
+    .in(file("modules/bench"))
+    .dependsOn(core)
+    .enablePlugins(JmhPlugin)
+    .settings(stdSettings *)
+    .settings(
+      name           := "csvzen-bench",
+      publish / skip := true,
+      // Bench JVM is JDK 25 (per design doc Q5). The library itself stays on
+      // javaTarget 17 until the JDK floor is bumped in P3/P5; the bench module
+      // overrides via -release so it can use newer JDK features in the harness.
+      javacOptions   := Seq("-source", "21", "-target", "21"),
+      scalacOptions  := scalacOptions.value.filterNot(_.startsWith("-release")) :+ "-release:21",
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio-test"          % zioVersion % Test,
+        "dev.zio" %% "zio-test-sbt"      % zioVersion % Test,
+        "dev.zio" %% "zio-test-magnolia" % zioVersion,
       ),
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
     )
