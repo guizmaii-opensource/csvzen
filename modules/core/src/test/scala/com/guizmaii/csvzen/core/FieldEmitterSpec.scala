@@ -299,5 +299,16 @@ object FieldEmitterSpec extends ZIOSpecDefault {
       emitEmptySpec,
       emitOptionSpec,
       delimiterPlacementSpec,
+      test("flushCount is reachable and starts at 0") {
+        val sw = new java.io.StringWriter
+        val w  = CsvWriter.unsafeFromWriter(sw, CsvConfig.default)
+        w.writeRow { e =>
+          e.emitInt(1)
+          e.emitInt(2)
+        }
+        // P0 stub: always 0 against the Writer-backed implementation. P1 redefines
+        // this to count byte-buffer flushes; the test will assert real numbers then.
+        assertTrue(w.emitter.flushCount == 0L)
+      },
     )
 }
