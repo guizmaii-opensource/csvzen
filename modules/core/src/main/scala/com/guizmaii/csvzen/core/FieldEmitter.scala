@@ -25,6 +25,14 @@ final class FieldEmitter private[core] (out: Writer, config: CsvConfig) {
 
   private[core] def endRow(): Unit = out.write(lineTerminator)
 
+  /**
+   * Number of times the buffer has been flushed to the underlying sink. P0 stub
+   * (always returns `0` on the `Writer`-backed implementation); P1 swaps in a
+   * real counter incremented on every byte-buffer flush, used by the bench
+   * module and by syscall-regression assertions.
+   */
+  private[csvzen] def flushCount: Long = 0L
+
   private def fieldPrelude(): Unit =
     if (!first) out.write(delimiter.toInt)
     else first = false
