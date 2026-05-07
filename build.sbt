@@ -20,7 +20,7 @@ addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll; scalafmtSbtChec
 
 // ### Dependencies ###
 
-lazy val zioVersion = "2.1.25"
+lazy val zioVersion = "2.1.26"
 
 // ### Modules ###
 
