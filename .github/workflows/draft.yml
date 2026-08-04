@@ -22,7 +22,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: release-drafter/release-drafter@v7.5.1
+      - uses: release-drafter/release-drafter@v7.6.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -35,6 +35,6 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: release-drafter/release-drafter/autolabeler@v7.5.1
+      - uses: release-drafter/release-drafter/autolabeler@v7.6.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
