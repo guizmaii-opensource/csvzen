@@ -16,7 +16,7 @@ jobs:
       - run: env
         shell: bash
       - uses: actions/checkout@v7
-      - uses: sbt/setup-sbt@v1.5.5
+      - uses: sbt/setup-sbt@v1.5.6
       - uses: coursier/cache-action@v8
       - uses: olafurpg/setup-gpg@v3
       - uses: actions/setup-java@v5
