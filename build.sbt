@@ -2,7 +2,7 @@ import BuildHelper.{noDoc, stdSettings}
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
-ThisBuild / scalaVersion      := "3.3.8"
+ThisBuild / scalaVersion      := "3.9.0"
 ThisBuild / scalafmtCheck     := true
 ThisBuild / scalafmtSbtCheck  := true
 ThisBuild / scalafmtOnCompile := !insideCI.value
