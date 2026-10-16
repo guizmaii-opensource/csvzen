@@ -99,6 +99,19 @@ csvGoldenTest(
 different types that happen to share a short name (e.g. `User` from two
 packages); set it on each so the golden files don't collide.
 
+### Locating the golden directory
+
+Golden files live under `<module>/src/test/resources/golden/`. By default the
+module root is found by walking up from the test classes to the enclosing
+`target/` directory, which matches sbt 1's layout. Build tools that put test
+classes elsewhere (e.g. sbt 2, under the build's root `target/out/`) must pass
+the module root as the `csvzen.golden.moduleRoot` system property:
+
+```scala
+// sbt 2, with `Test / fork := true`
+Test / javaOptions += s"-Dcsvzen.golden.moduleRoot=${baseDirectory.value}"
+```
+
 ## Inspiration
 
 This module mirrors `zio.json.golden`'s API and workflow as closely as the
