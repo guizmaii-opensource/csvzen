@@ -25,28 +25,42 @@ private[testkit] object filehelpers {
     else if (file.getName == "target") ZIO.succeed(file)
     else ZIO.attempt(file.getParentFile).flatMap(getRootDir)
 
-  def createGoldenDirectory(pathToDir: String)(using trace: Trace): Task[Path] = {
-    // Resolve a `File` for either the classpath root (`/`) or the package root (`.`),
-    // tolerating both the `null` URL (some classloaders) and non-hierarchical URIs
-    // (e.g. JAR-packaged tests, where `new File(uri)` throws `IllegalArgumentException`).
-    def tryRoot(name: String): Option[File] =
-      Option(getClass.getResource(name)).flatMap { url =>
-        try Some(new File(url.toURI))
-        catch {
-          case _: IllegalArgumentException    => None
-          case _: java.net.URISyntaxException => None
-        }
-      }
-    val rootFileOpt                         = tryRoot("/").orElse(tryRoot("."))
+  /**
+   * System property naming the module root (the directory holding `src/test/resources/golden`). Needed when test
+   * classes are not under `<module>/target`, e.g. sbt 2's `target/out/`. When unset, the root is found from `target`.
+   */
+  private val moduleRootProperty: String = "csvzen.golden.moduleRoot"
+
+  def createGoldenDirectory(pathToDir: String)(using trace: Trace): Task[Path] =
     for {
-      rootFile <- ZIO
-                    .fromOption(rootFileOpt)
-                    .orElseFail(new IllegalStateException("csvzen-test-kit: no file-based classpath root resource available."))
-      baseFile <- getRootDir(rootFile)
-      goldenDir = new File(baseFile.getParentFile, pathToDir)
-      _        <- ZIO.attemptBlocking(goldenDir.mkdirs())
+      moduleRoot <- resolveModuleRoot(sys.props.get(moduleRootProperty))
+      goldenDir   = new File(moduleRoot, pathToDir)
+      _          <- ZIO.attemptBlocking(goldenDir.mkdirs())
     } yield goldenDir.toPath
-  }
+
+  def resolveModuleRoot(moduleRootOverride: Option[String])(using trace: Trace): Task[File] =
+    moduleRootOverride match {
+      case Some(moduleRoot) => ZIO.succeed(new File(moduleRoot))
+      case None             =>
+        // Resolve a `File` for either the classpath root (`/`) or the package root (`.`),
+        // tolerating both the `null` URL (some classloaders) and non-hierarchical URIs
+        // (e.g. JAR-packaged tests, where `new File(uri)` throws `IllegalArgumentException`).
+        def tryRoot(name: String): Option[File] =
+          Option(getClass.getResource(name)).flatMap { url =>
+            try Some(new File(url.toURI))
+            catch {
+              case _: IllegalArgumentException    => None
+              case _: java.net.URISyntaxException => None
+            }
+          }
+        val rootFileOpt                         = tryRoot("/").orElse(tryRoot("."))
+        for {
+          rootFile <- ZIO
+                        .fromOption(rootFileOpt)
+                        .orElseFail(new IllegalStateException("csvzen-test-kit: no file-based classpath root resource available."))
+          baseFile <- getRootDir(rootFile)
+        } yield baseFile.getParentFile
+    }
 
   def writeCsvToFile(path: Path, csv: String)(using trace: Trace): IO[IOException, Unit] =
     ZIO.attemptBlockingIO(Files.write(path, csv.getBytes(StandardCharsets.UTF_8))).unit
